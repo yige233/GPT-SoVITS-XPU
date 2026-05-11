@@ -586,7 +586,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output_path", required=True, help="Path to the output directory"
     )
-    parser.add_argument("--device", help="Device to use", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--device", help="Device to use", default="xpu" if torch.xpu.is_available() else "cpu")
     parser.add_argument("--version", help="version of the model", default="v2Pro")
     parser.add_argument("--no-half", action="store_true", help = "Do not use half precision for model weights")
     parser.add_argument("--lang", default="auto", help="Language for text processing (default: auto)")

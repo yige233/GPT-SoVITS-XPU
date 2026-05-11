@@ -87,7 +87,7 @@ is_share = os.environ.get("is_share", "False")
 is_share = eval(is_share)
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
-is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
+is_half = eval(os.environ.get("is_half", "True")) and torch.xpu.is_available()
 # is_half=False
 punctuation = set(["!", "?", "…", ",", ".", "-", " "])
 import gradio as gr
@@ -111,7 +111,7 @@ def set_seed(seed):
     os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
+    torch.xpu.manual_seed(seed)
 
 
 # set_seed(42)
@@ -132,34 +132,34 @@ i18n = I18nAuto(language=language)
 
 # os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'  # 确保直接启动推理UI时也能够设置。
 
-if torch.cuda.is_available():
-    device = "cuda"
+if torch.xpu.is_available():
+    device = "xpu"
 else:
     device = "cpu"
 
 
 def check_cuda_graph_support():
-    if device != "cuda":
+    if device != "xpu":
         return False
     try:
-        major, _ = torch.cuda.get_device_capability()
+        major, _ = torch.xpu.get_device_capability()
         if major < 7:
             print("CUDA Graph: GPU compute capability < 7.0, disabled")
             return False
-        a = torch.randn(2, 2, device="cuda")
-        g = torch.cuda.CUDAGraph()
-        s = torch.cuda.Stream()
-        s.wait_stream(torch.cuda.current_stream())
-        with torch.cuda.stream(s):
+        a = torch.randn(2, 2, device="xpu")
+        g = torch.xpu.CUDAGraph()
+        s = torch.xpu.Stream()
+        s.wait_stream(torch.xpu.current_stream())
+        with torch.xpu.stream(s):
             b = a * 2
-        torch.cuda.current_stream().wait_stream(s)
+        torch.xpu.current_stream().wait_stream(s)
         out = torch.empty_like(b)
-        with torch.cuda.graph(g):
+        with torch.xpu.graph(g):
             out.copy_(a * 2)
         g.replay()
-        torch.cuda.synchronize()
+        torch.xpu.synchronize()
         del a, b, out, g, s
-        torch.cuda.empty_cache()
+        torch.xpu.empty_cache()
         print("CUDA Graph: support check passed, auto-enabled")
         return True
     except Exception as e:
@@ -449,7 +449,7 @@ def clean_hifigan_model():
         hifigan_model = hifigan_model.cpu()
         hifigan_model = None
         try:
-            torch.cuda.empty_cache()
+            torch.xpu.empty_cache()
         except:
             pass
 
@@ -460,7 +460,7 @@ def clean_bigvgan_model():
         bigvgan_model = bigvgan_model.cpu()
         bigvgan_model = None
         try:
-            torch.cuda.empty_cache()
+            torch.xpu.empty_cache()
         except:
             pass
 
@@ -471,7 +471,7 @@ def clean_sv_cn_model():
         sv_cn_model.embedding_model = sv_cn_model.embedding_model.cpu()
         sv_cn_model = None
         try:
-            torch.cuda.empty_cache()
+            torch.xpu.empty_cache()
         except:
             pass
 
@@ -914,7 +914,7 @@ def get_tts_wav(
         if i_text in cache and if_freeze == True:
             pred_semantic = cache[i_text]
         else:
-            if use_cuda_graph and device == "cuda":
+            if use_cuda_graph and device == "xpu":
                 global t2s_model_cudagraph
                 if t2s_model_cudagraph is None:
                     from AR.models.t2s_model_cudagraph import CUDAGraphRunner
@@ -1358,7 +1358,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             use_cuda_graph_checkbox = gr.Checkbox(
                 label="CUDA Graph " + i18n("加速"),
                 value=cuda_graph_supported,
-                interactive=True if torch.cuda.is_available() else False,
+                interactive=True if torch.xpu.is_available() else False,
                 show_label=True,
                 scale=5,
                 visible=False,

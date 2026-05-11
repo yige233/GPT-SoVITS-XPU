@@ -120,8 +120,8 @@ def uvr(model_name, inp_root, save_root_vocal, paths, save_root_ins, agg, format
         except:
             traceback.print_exc()
         print("clean_empty_cache")
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        if torch.xpu.is_available():
+            torch.xpu.empty_cache()
     yield "\n".join(infos)
 
 

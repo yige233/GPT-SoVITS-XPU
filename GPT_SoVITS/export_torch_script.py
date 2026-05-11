@@ -940,24 +940,24 @@ def test():
     tokenizer = AutoTokenizer.from_pretrained(bert_path)
     # bert_model = AutoModelForMaskedLM.from_pretrained(bert_path,output_hidden_states=True,torchscript=True)
     # bert = MyBertModel(bert_model)
-    my_bert = torch.jit.load("onnx/bert_model.pt", map_location="cuda")
+    my_bert = torch.jit.load("onnx/bert_model.pt", map_location="xpu")
 
-    # dict_s1 = torch.load(gpt_path, map_location="cuda")
+    # dict_s1 = torch.load(gpt_path, map_location="xpu")
     # raw_t2s = get_raw_t2s_model(dict_s1)
     # t2s = T2SModel(raw_t2s)
     # t2s.eval()
-    # t2s = torch.jit.load("onnx/xw/t2s_model.pt",map_location='cuda')
+    # t2s = torch.jit.load("onnx/xw/t2s_model.pt",map_location='xpu')
 
     # vits_path = "SoVITS_weights_v2/xw_e8_s216.pth"
     # vits = VitsModel(vits_path)
     # vits.eval()
 
-    # ssl = ExportSSLModel(SSLModel()).to('cuda')
+    # ssl = ExportSSLModel(SSLModel()).to('xpu')
     # ssl.eval()
-    ssl = torch.jit.load("onnx/by/ssl_model.pt", map_location="cuda")
+    ssl = torch.jit.load("onnx/by/ssl_model.pt", map_location="xpu")
 
     # gpt_sovits = GPT_SoVITS(t2s,vits)
-    gpt_sovits = torch.jit.load("onnx/by/gpt_sovits_model.pt", map_location="cuda")
+    gpt_sovits = torch.jit.load("onnx/by/gpt_sovits_model.pt", map_location="xpu")
 
     ref_seq_id, ref_bert_T, ref_norm_text = get_phones_and_bert(ref_text, "all_zh", "v2")
     ref_seq = torch.LongTensor([ref_seq_id])
@@ -977,10 +977,10 @@ def test():
     test_bert["word2ph"] = torch.Tensor(word2ph).int()
 
     test_bert = my_bert(
-        test_bert["input_ids"].to("cuda"),
-        test_bert["attention_mask"].to("cuda"),
-        test_bert["token_type_ids"].to("cuda"),
-        test_bert["word2ph"].to("cuda"),
+        test_bert["input_ids"].to("xpu"),
+        test_bert["attention_mask"].to("xpu"),
+        test_bert["token_type_ids"].to("xpu"),
+        test_bert["word2ph"].to("xpu"),
     )
 
     text_seq = torch.LongTensor([text_seq_id])
@@ -988,13 +988,13 @@ def test():
 
     print("text_bert:", text_bert.shape, text_bert)
     print("test_bert:", test_bert.shape, test_bert)
-    print(torch.allclose(text_bert.to("cuda"), test_bert))
+    print(torch.allclose(text_bert.to("xpu"), test_bert))
 
     print("text_seq:", text_seq.shape)
     print("text_bert:", text_bert.shape, text_bert.type())
 
     # [1,N]
-    ref_audio = torch.tensor([load_audio(ref_audio_path, 16000)]).float().to("cuda")
+    ref_audio = torch.tensor([load_audio(ref_audio_path, 16000)]).float().to("xpu")
     print("ref_audio:", ref_audio.shape)
 
     ref_audio_sr = ssl.resample(ref_audio, 16000, 32000)
@@ -1005,15 +1005,15 @@ def test():
     print("ssl_content:", ssl_content.shape)
     print("ref_audio_sr:", ref_audio_sr.shape)
     print("ref_seq:", ref_seq.shape)
-    ref_seq = ref_seq.to("cuda")
+    ref_seq = ref_seq.to("xpu")
     print("text_seq:", text_seq.shape)
-    text_seq = text_seq.to("cuda")
+    text_seq = text_seq.to("xpu")
     print("ref_bert:", ref_bert.shape)
-    ref_bert = ref_bert.to("cuda")
+    ref_bert = ref_bert.to("xpu")
     print("text_bert:", text_bert.shape)
-    text_bert = text_bert.to("cuda")
+    text_bert = text_bert.to("xpu")
 
-    top_k = torch.LongTensor([5]).to("cuda")
+    top_k = torch.LongTensor([5]).to("xpu")
 
     with torch.no_grad():
         audio = gpt_sovits(ssl_content, ref_audio_sr, ref_seq, text_seq, ref_bert, test_bert, top_k)

@@ -28,7 +28,7 @@ else:
     version = "v3"
 import torch
 
-is_half = eval(os.environ.get("is_half", "True")) and torch.cuda.is_available()
+is_half = eval(os.environ.get("is_half", "True")) and torch.xpu.is_available()
 import traceback
 import sys
 
@@ -59,8 +59,8 @@ semantic_path = "%s/6-name2semantic-%s.tsv" % (opt_dir, i_part)
 if os.path.exists(semantic_path) == False:
     os.makedirs(opt_dir, exist_ok=True)
 
-    if torch.cuda.is_available():
-        device = "cuda"
+    if torch.xpu.is_available():
+        device = "xpu"
     # elif torch.backends.mps.is_available():
     #     device = "mps"
     else:

@@ -12,7 +12,7 @@ import logging
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -51,8 +51,8 @@ device = "cpu"  # cuda以外的设备，等mps优化后加入
 
 
 def main():
-    if torch.cuda.is_available():
-        n_gpus = torch.cuda.device_count()
+    if torch.xpu.is_available():
+        n_gpus = torch.xpu.device_count()
     else:
         n_gpus = 1
     if n_gpus <= 1:
@@ -84,14 +84,14 @@ def run(rank, n_gpus, hps):
     use_ddp = n_gpus > 1
     if use_ddp:
         dist.init_process_group(
-            backend="gloo" if os.name == "nt" or not torch.cuda.is_available() else "nccl",
+            backend="gloo" if os.name == "nt" or not torch.xpu.is_available() else "nccl",
             init_method="env://?use_libuv=False",
             world_size=n_gpus,
             rank=rank,
         )
     torch.manual_seed(hps.train.seed)
-    if torch.cuda.is_available():
-        torch.cuda.set_device(rank)
+    if torch.xpu.is_available():
+        torch.xpu.set_device(rank)
 
     TextAudioSpeakerLoader = TextAudioSpeakerLoaderV3 if hps.model.version == "v3" else TextAudioSpeakerLoaderV4
     TextAudioSpeakerCollate = TextAudioSpeakerCollateV3 if hps.model.version == "v3" else TextAudioSpeakerCollateV4
@@ -128,7 +128,7 @@ def run(rank, n_gpus, hps):
     loader_kwargs = dict(
         num_workers=worker_count,
         shuffle=False,
-        pin_memory=torch.cuda.is_available(),
+        pin_memory=torch.xpu.is_available(),
         collate_fn=collate_fn,
         batch_sampler=train_sampler,
     )
@@ -166,7 +166,7 @@ def run(rank, n_gpus, hps):
         )
 
     def model2cuda(net_g, rank):
-        if torch.cuda.is_available():
+        if torch.xpu.is_available():
             net_g = net_g.cuda(rank)
             if use_ddp:
                 net_g = DDP(net_g, device_ids=[rank], find_unused_parameters=True)
@@ -275,7 +275,7 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
     for batch_idx, (ssl, spec, mel, ssl_lengths, spec_lengths, text, text_lengths, mel_lengths) in enumerate(
         tqdm(train_loader)
     ):
-        if torch.cuda.is_available():
+        if torch.xpu.is_available():
             spec, spec_lengths = (
                 spec.cuda(
                     rank,

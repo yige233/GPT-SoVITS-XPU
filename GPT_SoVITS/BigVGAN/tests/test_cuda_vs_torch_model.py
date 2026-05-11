@@ -71,11 +71,11 @@ if __name__ == "__main__":
     h = AttrDict({**json_config})
 
     print("loading plain Pytorch BigVGAN")
-    generator_original = BigVGAN(h).to("cuda")
+    generator_original = BigVGAN(h).to("xpu")
     print("loading CUDA kernel BigVGAN with auto-build")
-    generator_cuda_kernel = BigVGAN(h, use_cuda_kernel=True).to("cuda")
+    generator_cuda_kernel = BigVGAN(h, use_cuda_kernel=True).to("xpu")
 
-    state_dict_g = load_checkpoint(args.checkpoint_file, "cuda")
+    state_dict_g = load_checkpoint(args.checkpoint_file, "xpu")
     generator_original.load_state_dict(state_dict_g["generator"])
     generator_cuda_kernel.load_state_dict(state_dict_g["generator"])
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     diff = 0.0
     for i in tqdm(range(num_sample)):
         # Random mel
-        data = torch.rand((1, h.num_mels, num_mel_frame), device="cuda")
+        data = torch.rand((1, h.num_mels, num_mel_frame), device="xpu")
 
         with torch.inference_mode():
             audio_original = generator_original(data)
@@ -131,39 +131,39 @@ if __name__ == "__main__":
 
     # Measure Original inference in isolation
     for i in tqdm(range(num_sample)):
-        torch.cuda.reset_peak_memory_stats(device="cuda")
-        data = torch.rand((1, h.num_mels, num_mel_frame), device="cuda")
-        torch.cuda.synchronize()
+        torch.xpu.reset_peak_memory_stats(device="xpu")
+        data = torch.rand((1, h.num_mels, num_mel_frame), device="xpu")
+        torch.xpu.synchronize()
         tic = time()
         with torch.inference_mode():
             audio_original = generator_original(data)
-        torch.cuda.synchronize()
+        torch.xpu.synchronize()
         toc = time() - tic
         toc_total_original += toc
 
-        vram_used_original_total += torch.cuda.max_memory_allocated(device="cuda")
+        vram_used_original_total += torch.xpu.max_memory_allocated(device="xpu")
 
         del data, audio_original
-        torch.cuda.empty_cache()
+        torch.xpu.empty_cache()
 
     # Measure CUDA kernel inference in isolation
     for i in tqdm(range(num_sample)):
-        torch.cuda.reset_peak_memory_stats(device="cuda")
-        data = torch.rand((1, h.num_mels, num_mel_frame), device="cuda")
-        torch.cuda.synchronize()
+        torch.xpu.reset_peak_memory_stats(device="xpu")
+        data = torch.rand((1, h.num_mels, num_mel_frame), device="xpu")
+        torch.xpu.synchronize()
         tic = time()
         with torch.inference_mode():
             audio_cuda_kernel = generator_cuda_kernel(data)
-        torch.cuda.synchronize()
+        torch.xpu.synchronize()
         toc = time() - tic
         toc_total_cuda_kernel += toc
 
         audio_length_total += audio_cuda_kernel.shape[-1]
 
-        vram_used_cuda_kernel_total += torch.cuda.max_memory_allocated(device="cuda")
+        vram_used_cuda_kernel_total += torch.xpu.max_memory_allocated(device="xpu")
 
         del data, audio_cuda_kernel
-        torch.cuda.empty_cache()
+        torch.xpu.empty_cache()
 
     # Calculate metrics
     audio_second = audio_length_total / h.sampling_rate
@@ -184,7 +184,7 @@ if __name__ == "__main__":
 
     # Use artificial sine waves for inference test
     audio_real, sr = generate_soundwave(duration=5.0, sr=h.sampling_rate)
-    audio_real = torch.tensor(audio_real).to("cuda")
+    audio_real = torch.tensor(audio_real).to("xpu")
     # Compute mel spectrogram from the ground truth audio
     x = get_mel(audio_real.unsqueeze(0), h)
 

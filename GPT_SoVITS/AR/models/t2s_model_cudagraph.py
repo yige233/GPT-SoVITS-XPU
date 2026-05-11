@@ -14,7 +14,7 @@ from typing import Dict, List, MutableSequence, Optional, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.cuda.graphs import CUDAGraph
+from torch.xpu.graphs import CUDAGraph
 from tqdm import tqdm
 
 from AR.models.embedding_cudagraph import (
@@ -413,19 +413,19 @@ class T2SDecoder(nn.Module):
         x_dec: Tensor,
         kv_caches,
     ) -> CUDAGraph:
-        s = torch.cuda.Stream()
-        s.wait_stream(torch.cuda.current_stream())
+        s = torch.xpu.Stream()
+        s.wait_stream(torch.xpu.current_stream())
 
-        graph = torch.cuda.CUDAGraph()
+        graph = torch.xpu.CUDAGraph()
 
-        with torch.cuda.stream(s):
+        with torch.xpu.stream(s):
             for _ in range(5):
                 self.h.forward(input_pos, x, kv_caches)
-        torch.cuda.current_stream().wait_stream(s)
+        torch.xpu.current_stream().wait_stream(s)
 
-        with torch.cuda.graph(graph):
+        with torch.xpu.graph(graph):
             x_dec.copy_(self.h.forward(input_pos, x, kv_caches))
-        torch.cuda.synchronize()
+        torch.xpu.synchronize()
 
         return graph
 
@@ -440,7 +440,7 @@ class CUDAGraphRunner:
         device: torch.device = torch.device("cpu"),
         dtype: torch.dtype = torch.float32,
     ) -> None:
-        assert device.type in {"cpu", "cuda", "mps", "xpu", "mtia"}
+        assert device.type in {"cpu", "xpu", "mps", "xpu", "mtia"}
         assert dtype in {torch.float16, torch.bfloat16, torch.float32}
         self.device = device
         self.dtype = dtype
@@ -453,7 +453,7 @@ class CUDAGraphRunner:
             (1, 1, decoder_model.embedding_dim), device=device
         ).to(dtype)
         self.kv_cache = decoder_model.init_cache(1)
-        self.input_pos = torch.tensor([10]).int().cuda()
+        self.input_pos = torch.tensor([10]).int().xpu()
 
     def _handle_request(self, request: T2SRequest):
         with self.device:
@@ -479,7 +479,7 @@ class CUDAGraphRunner:
                     if (
                         request.use_cuda_graph
                         and self.graph is None
-                        and torch.cuda.is_available()
+                        and torch.xpu.is_available()
                     ):
                         self.xy_pos_.copy_(session.xy_pos)
                         self.graph = decoder.capture(
@@ -567,11 +567,11 @@ class CUDAGraphRunner:
                 if idx == 2:
                     t1 = time.perf_counter()
 
-                if idx % 100 == 0 and self.device.type == "cuda":
-                    torch.cuda.empty_cache()
+                if idx % 100 == 0 and self.device.type == "xpu":
+                    torch.xpu.empty_cache()
 
-            if self.device.type == "cuda":
-                torch.cuda.empty_cache()
+            if self.device.type == "xpu":
+                torch.xpu.empty_cache()
 
             return session.y_results[: request.valid_length], infer_speed
 

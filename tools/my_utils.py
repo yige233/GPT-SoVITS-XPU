@@ -140,8 +140,8 @@ def check_details(path_list=None, is_train=False, is_dataset_processing=False):
 def load_cudnn():
     import torch
 
-    if not torch.cuda.is_available():
-        print("[INFO] CUDA is not available, skipping cuDNN setup.")
+    if not torch.xpu.is_available():
+        print("[INFO] XPU is not available, skipping cuDNN setup.")
         return
 
     if sys.platform == "win32":
@@ -187,8 +187,8 @@ def load_cudnn():
 def load_nvrtc():
     import torch
 
-    if not torch.cuda.is_available():
-        print("[INFO] CUDA is not available, skipping nvrtc setup.")
+    if not torch.xpu.is_available():
+        print("[INFO] XPU is not available, skipping nvrtc setup.")
         return
 
     if sys.platform == "win32":

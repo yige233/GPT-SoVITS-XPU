@@ -64,8 +64,8 @@ def train(rank, a, h):
         )
 
     # Set seed and device
-    torch.cuda.manual_seed(h.seed)
-    torch.cuda.set_device(rank)
+    torch.xpu.manual_seed(h.seed)
+    torch.xpu.set_device(rank)
     device = torch.device(f"cuda:{rank:d}")
 
     # Define BigVGAN generator
@@ -265,15 +265,15 @@ def train(rank, a, h):
     def validate(rank, a, h, loader, mode="seen"):
         assert rank == 0, "validate should only run on rank=0"
         generator.eval()
-        torch.cuda.empty_cache()
+        torch.xpu.empty_cache()
 
         val_err_tot = 0
         val_pesq_tot = 0
         val_mrstft_tot = 0
 
         # Modules for evaluation metrics
-        pesq_resampler = ta.transforms.Resample(h.sampling_rate, 16000).cuda()
-        loss_mrstft = auraloss.freq.MultiResolutionSTFTLoss(device="cuda")
+        pesq_resampler = ta.transforms.Resample(h.sampling_rate, 16000).xpu()
+        loss_mrstft = auraloss.freq.MultiResolutionSTFTLoss(device="xpu")
 
         if a.save_audio:  # Also save audio to disk if --save_audio is set to True
             os.makedirs(
@@ -691,9 +691,9 @@ def main():
     build_env(a.config, "config.json", a.checkpoint_path)
 
     torch.manual_seed(h.seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(h.seed)
-        h.num_gpus = torch.cuda.device_count()
+    if torch.xpu.is_available():
+        torch.xpu.manual_seed(h.seed)
+        h.num_gpus = torch.xpu.device_count()
         h.batch_size = int(h.batch_size / h.num_gpus)
         print(f"Batch size per GPU: {h.batch_size}")
     else:

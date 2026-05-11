@@ -145,33 +145,38 @@ webui_port_subfix = 9871
 api_port = 9880
 
 
-# Thanks to the contribution of @Karasukaigan and @XXXXRT666
 def get_device_dtype_sm(idx: int) -> tuple[torch.device, torch.dtype, float, float]:
+    """
+    返回 (device, dtype, fake_sm, mem_gb)
+    依据 Intel GPU 的显存和 fp16 支持能力决定是否推荐半精度。
+    """
     cpu = torch.device("cpu")
-    cuda = torch.device(f"cuda:{idx}")
-    if not torch.cuda.is_available():
+    if not torch.xpu.is_available():
         return cpu, torch.float32, 0.0, 0.0
-    device_idx = idx
-    capability = torch.cuda.get_device_capability(device_idx)
-    name = torch.cuda.get_device_name(device_idx)
-    mem_bytes = torch.cuda.get_device_properties(device_idx).total_memory
-    mem_gb = mem_bytes / (1024**3) + 0.4
-    major, minor = capability
-    sm_version = major + minor / 10.0
-    is_16_series = bool(re.search(r"16\d{2}", name)) and sm_version == 7.5
-    if mem_gb < 4 or sm_version < 5.3:
-        return cpu, torch.float32, 0.0, 0.0
-    if sm_version == 6.1 or is_16_series == True:
-        return cuda, torch.float32, sm_version, mem_gb
-    if sm_version > 6.1:
-        return cuda, torch.float16, sm_version, mem_gb
-    return cpu, torch.float32, 0.0, 0.0
 
+    device_idx = idx
+    try:
+        props = torch.xpu.get_device_properties(device_idx)
+    except Exception:
+        return cpu, torch.float32, 0.0, 0.0
+
+    mem_bytes = props.total_memory
+    mem_gb = mem_bytes / (1024**3) + 0.4   # 保留原逻辑的 +0.4 GiB 补偿
+    has_fp16 = getattr(props, 'has_fp16', False)
+
+    # 显存不足 4 GiB 或不支持 fp16 → 回退 CPU
+    if mem_gb < 4 or not has_fp16:
+        return cpu, torch.float32, 0.0, 0.0
+
+    # 推荐使用半精度，并给出一个虚拟的“计算能力”值 10.0（仅用于兼容旧判断）
+    fake_sm = 10.0
+    device = torch.device(f"xpu:{device_idx}")
+    return device, torch.float16, fake_sm, mem_gb
 
 IS_GPU = True
 GPU_INFOS: list[str] = []
 GPU_INDEX: set[int] = set()
-GPU_COUNT = torch.cuda.device_count()
+GPU_COUNT = torch.xpu.device_count()
 CPU_INFO: str = "0\tCPU " + i18n("CPU训练,较慢")
 tmp: list[tuple[torch.device, torch.dtype, float, float]] = []
 memset: set[float] = set()
@@ -183,7 +188,7 @@ for j in tmp:
     device = j[0]
     memset.add(j[3])
     if device.type != "cpu":
-        GPU_INFOS.append(f"{device.index}\t{torch.cuda.get_device_name(device.index)}")
+        GPU_INFOS.append(f"{device.index}\t{torch.xpu.get_device_name(device.index)}")
         GPU_INDEX.add(device.index)
 
 if not GPU_INFOS:

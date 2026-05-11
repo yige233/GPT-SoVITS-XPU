@@ -12,7 +12,7 @@ import logging
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -51,8 +51,8 @@ device = "cpu"  # cuda以外的设备，等mps优化后加入
 
 
 def main():
-    if torch.cuda.is_available():
-        n_gpus = torch.cuda.device_count()
+    if torch.xpu.is_available():
+        n_gpus = torch.xpu.device_count()
     else:
         n_gpus = 1
     os.environ["MASTER_ADDR"] = "localhost"
@@ -78,14 +78,14 @@ def run(rank, n_gpus, hps):
         writer_eval = SummaryWriter(log_dir=os.path.join(hps.s2_ckpt_dir, "eval"))
 
     dist.init_process_group(
-        backend="gloo" if os.name == "nt" or not torch.cuda.is_available() else "nccl",
+        backend="gloo" if os.name == "nt" or not torch.xpu.is_available() else "nccl",
         init_method="env://?use_libuv=False",
         world_size=n_gpus,
         rank=rank,
     )
     torch.manual_seed(hps.train.seed)
-    if torch.cuda.is_available():
-        torch.cuda.set_device(rank)
+    if torch.xpu.is_available():
+        torch.xpu.set_device(rank)
 
     train_dataset = TextAudioSpeakerLoader(hps.data)  ########
     train_sampler = DistributedBucketSampler(
@@ -139,7 +139,7 @@ def run(rank, n_gpus, hps):
             n_speakers=hps.data.n_speakers,
             **hps.model,
         ).cuda(rank)
-        if torch.cuda.is_available()
+        if torch.xpu.is_available()
         else SynthesizerTrn(
             hps.data.filter_length // 2 + 1,
             hps.train.segment_size // hps.data.hop_length,
@@ -148,7 +148,7 @@ def run(rank, n_gpus, hps):
         ).to(device)
     )
 
-    # net_d = MultiPeriodDiscriminator(hps.model.use_spectral_norm).cuda(rank) if torch.cuda.is_available() else MultiPeriodDiscriminator(hps.model.use_spectral_norm).to(device)
+    # net_d = MultiPeriodDiscriminator(hps.model.use_spectral_norm).cuda(rank) if torch.xpu.is_available() else MultiPeriodDiscriminator(hps.model.use_spectral_norm).to(device)
     # for name, param in net_g.named_parameters():
     #     if not param.requires_grad:
     #         print(name, "not requires_grad")
@@ -165,7 +165,7 @@ def run(rank, n_gpus, hps):
     #     betas=hps.train.betas,
     #     eps=hps.train.eps,
     # )
-    if torch.cuda.is_available():
+    if torch.xpu.is_available():
         net_g = DDP(net_g, device_ids=[rank], find_unused_parameters=True)
         # net_d = DDP(net_d, device_ids=[rank], find_unused_parameters=True)
     else:
@@ -207,7 +207,7 @@ def run(rank, n_gpus, hps):
                     torch.load(hps.train.pretrained_s2G, map_location="cpu", weights_only=False)["weight"],
                     strict=False,
                 )
-                if torch.cuda.is_available()
+                if torch.xpu.is_available()
                 else net_g.load_state_dict(
                     torch.load(hps.train.pretrained_s2G, map_location="cpu", weights_only=False)["weight"],
                     strict=False,
@@ -219,7 +219,7 @@ def run(rank, n_gpus, hps):
         #     print(
         #         net_d.module.load_state_dict(
         #             torch.load(hps.train.pretrained_s2D, map_location="cpu")["weight"]
-        #         ) if torch.cuda.is_available() else net_d.load_state_dict(
+        #         ) if torch.xpu.is_available() else net_d.load_state_dict(
         #             torch.load(hps.train.pretrained_s2D, map_location="cpu")["weight"]
         #         )
         #     )
@@ -309,7 +309,7 @@ def train_and_evaluate(
     for batch_idx, (ssl, spec, mel, ssl_lengths, spec_lengths, text, text_lengths, mel_lengths) in enumerate(
         tqdm(train_loader)
     ):
-        if torch.cuda.is_available():
+        if torch.xpu.is_available():
             spec, spec_lengths = (
                 spec.cuda(
                     rank,

@@ -200,9 +200,9 @@ def set_seed(seed: int):
     np.random.seed(seed)
     torch.manual_seed(seed)
     try:
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed(seed)
-            torch.cuda.manual_seed_all(seed)
+        if torch.xpu.is_available():
+            torch.xpu.manual_seed(seed)
+            torch.xpu.manual_seed_all(seed)
             # torch.backends.cudnn.deterministic = True
             # torch.backends.cudnn.benchmark = False
             # torch.backends.cudnn.enabled = True
@@ -319,8 +319,8 @@ class TTS_Config:
         self.default_configs = deepcopy(configs_)
 
         self.device = self.configs.get("device", torch.device("cpu"))
-        if "cuda" in str(self.device) and not torch.cuda.is_available():
-            print("Warning: CUDA is not available, set device to CPU.")
+        if "xpu" in str(self.device) and not torch.xpu.is_available():
+            print("Warning: XPU is not available, set device to CPU.")
             self.device = torch.device("cpu")
 
         self.is_half = self.configs.get("is_half", False)
@@ -1531,8 +1531,8 @@ class TTS:
     def empty_cache(self):
         try:
             gc.collect()  # 触发gc的垃圾回收。避免内存一直增长。
-            if "cuda" in str(self.configs.device):
-                torch.cuda.empty_cache()
+            if "xpu" in str(self.configs.device):
+                torch.xpu.empty_cache()
             elif str(self.configs.device) == "mps":
                 torch.mps.empty_cache()
         except:

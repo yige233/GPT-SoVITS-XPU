@@ -27,7 +27,7 @@ logging.config.dictConfig(uvicorn.config.LOGGING_CONFIG)
 logger = logging.getLogger("uvicorn")
 
 is_half = True
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "xpu" if torch.xpu.is_available() else "cpu"
 now_dir = os.getcwd()
 
 
@@ -1167,7 +1167,7 @@ def export_2(version="v3"):
     # gpt_sovits_v3_half = torch.jit.load("onnx/ad/gpt_sovits_v3_half.pt")
     # gpt_sovits_v3_half = torch.jit.optimize_for_inference(gpt_sovits_v3_half)
     # gpt_sovits_v3_half = gpt_sovits_v3_half.half()
-    # gpt_sovits_v3_half = gpt_sovits_v3_half.cuda()
+    # gpt_sovits_v3_half = gpt_sovits_v3_half.xpu()
     # gpt_sovits_v3_half.eval()
     if version == "v3":
         gpt_sovits_v3_half = ExportGPTSovitsHalf(sovits.hps, t2s_m, vq_model)
@@ -1177,7 +1177,7 @@ def export_2(version="v3"):
         bigvgan_model = torch.jit.load("onnx/ad/bigvgan_model.pt")
         # bigvgan_model = torch.jit.optimize_for_inference(bigvgan_model)
         bigvgan_model = bigvgan_model.half()
-        bigvgan_model = bigvgan_model.cuda()
+        bigvgan_model = bigvgan_model.xpu()
         bigvgan_model.eval()
 
         logger.info("bigvgan ok")
@@ -1193,7 +1193,7 @@ def export_2(version="v3"):
 
         hifigan_model = torch.jit.load("onnx/ad/hifigan_model.pt")
         hifigan_model = hifigan_model.half()
-        hifigan_model = hifigan_model.cuda()
+        hifigan_model = hifigan_model.xpu()
         hifigan_model.eval()
         logger.info("hifigan ok")
         gpt_sovits_v4 = GPTSoVITSV4(gpt_sovits_v4_half, cfm, hifigan_model)

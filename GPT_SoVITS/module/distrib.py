@@ -115,7 +115,7 @@ def average_metrics(metrics: tp.Dict[str, float], count=1.0):
     if not is_distributed():
         return metrics
     keys, values = zip(*metrics.items())
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "xpu" if torch.xpu.is_available() else "cpu"
     tensor = torch.tensor(list(values) + [1], device=device, dtype=torch.float32)
     tensor *= count
     all_reduce(tensor)

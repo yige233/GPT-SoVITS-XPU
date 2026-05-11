@@ -135,7 +135,7 @@ class Roformer_Loader:
         window_middle[-fade_size:] *= fadeout
         window_middle[:fade_size] *= fadein
 
-        with torch.amp.autocast("cuda"):
+        with torch.amp.autocast("xpu"):
             with torch.inference_mode():
                 if self.config["training"]["target_instrument"] is None:
                     req_shape = (len(self.config["training"]["instruments"]),) + tuple(mix.shape)
