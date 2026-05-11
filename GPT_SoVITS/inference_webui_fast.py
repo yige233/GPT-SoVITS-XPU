@@ -42,6 +42,12 @@ logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 
 
+ref_audio_path = os.environ.get("REF_AUDIO", "")
+ref_audio_txt = os.environ.get("REF_AUDIO_TXT", "")
+ref_audio_lang = os.environ.get("REF_AUDIO_LANG")
+opt_lang = os.environ.get("OPT_LANG")
+
+
 infer_ttswebui = os.environ.get("infer_ttswebui", 9872)
 infer_ttswebui = int(infer_ttswebui)
 is_share = os.environ.get("is_share", "False")
@@ -335,16 +341,16 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
         with gr.Column():
             gr.Markdown(value=i18n("*请上传并填写参考信息"))
             with gr.Row():
-                inp_ref = gr.Audio(label=i18n("主参考音频(请上传3~10秒内参考音频，超过会报错！)"), type="filepath")
+                inp_ref = gr.Audio(label=i18n("主参考音频(请上传3~10秒内参考音频，超过会报错！)"), type="filepath",value=ref_audio_path)
                 inp_refs = gr.File(
                     label=i18n("辅参考音频(可选多个，或不选)"),
                     file_count="multiple",
                     visible=True if model_version != "v3" else False,
                 )
-            prompt_text = gr.Textbox(label=i18n("主参考音频的文本"), value="", lines=2)
+            prompt_text = gr.Textbox(label=i18n("主参考音频的文本"), value=ref_audio_txt, lines=2)
             with gr.Row():
                 prompt_language = gr.Dropdown(
-                    label=i18n("主参考音频的语种"), choices=list(dict_language.keys()), value=i18n("中文")
+                    label=i18n("主参考音频的语种"), choices=list(dict_language.keys()), value=i18n(ref_audio_lang or "中文")
                 )
                 with gr.Column():
                     ref_text_free = gr.Checkbox(
@@ -363,7 +369,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
             gr.Markdown(value=i18n("*请填写需要合成的目标文本和语种模式"))
             text = gr.Textbox(label=i18n("需要合成的文本"), value="", lines=20, max_lines=20)
             text_language = gr.Dropdown(
-                label=i18n("需要合成的文本的语种"), choices=list(dict_language.keys()), value=i18n("中文")
+                label=i18n("需要合成的文本的语种"), choices=list(dict_language.keys()), value=i18n(opt_lang or "中文")
             )
 
     with gr.Group():
