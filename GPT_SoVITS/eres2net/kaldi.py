@@ -618,7 +618,8 @@ def fbank(
     )
 
     # size (m, padded_window_size // 2 + 1)
-    spectrum = torch.fft.rfft(strided_input).abs()
+    # 防止RuntimeError: Unsupported dtype Half，所以先计算float再转回half
+    spectrum = torch.fft.rfft(strided_input.float()).abs().half()
     if use_power:
         spectrum = spectrum.pow(2.0)
 

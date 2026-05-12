@@ -48,7 +48,7 @@ os.makedirs(wav32dir, exist_ok=True)
 maxx = 0.95
 alpha = 0.5
 if torch.xpu.is_available():
-    device = "xpu:0"
+    device = "xpu"
 # elif torch.backends.mps.is_available():
 #     device = "mps"
 else:

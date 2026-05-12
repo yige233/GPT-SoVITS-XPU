@@ -1,3 +1,5 @@
+关于修改的说明：[README_XPU.md](./README_XPU.md)
+
 <div align="center">
 
 <h1>GPT-SoVITS-WebUI</h1>
@@ -27,7 +29,7 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 ---
 
-## Features:
+## Features
 
 1. **Zero-shot TTS:** Input a 5-second vocal sample and experience instant text-to-speech conversion.
 
@@ -41,14 +43,14 @@ A Powerful Few-shot Voice Conversion and Text-to-Speech WebUI.<br><br>
 
 Unseen speakers few-shot fine-tuning demo:
 
-https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb
+<https://github.com/RVC-Boss/GPT-SoVITS/assets/129054828/05bee1fa-bdd8-4d85-9350-80c060ab47fb>
 
 **RTF(inference speed) of GPT-SoVITS v2 ProPlus**:
 0.028 tested in 4060Ti, 0.014 tested in 4090 (1400words~=4min, inference time is 3.36s), 0.526 in M4 CPU. You can test our [huggingface demo](https://lj1995-gpt-sovits-proplus.hf.space/) (half H200) to experience high-speed inference .
 
 请不要尬黑GPT-SoVITS推理速度慢，谢谢！
 
-CPU-Optimized Inference Version：https://github.com/baicai-1145/GPT-SoVITS-CPUFast
+CPU-Optimized Inference Version：<https://github.com/baicai-1145/GPT-SoVITS-CPUFast>
 
 **User guide: [简体中文](https://www.yuque.com/baicaigongchang1145haoyuangong/ib3g1e) | [English](https://rentry.co/GPT-SoVITS-guide#/)**
 

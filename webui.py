@@ -1532,7 +1532,7 @@ with gr.Blocks(title="GPT-SoVITS WebUI", analytics_enabled=False, js=js, css=css
                         with gr.Row():
                             inp_text = gr.Textbox(
                                 label=i18n("*文本标注文件"),
-                                value=r"D:\RVC1006\GPT-SoVITS\raw\xxx.list",
+                                value=r"output\asr_opt\slicer_opt.list",
                                 interactive=True,
                                 scale=10,
                             )
